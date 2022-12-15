@@ -1,81 +1,60 @@
-# Python program to illustrate a stop watch
-# using Tkinter
-#importing the required libraries
-import tkinter as Tkinter
-from datetime import datetime
-counter = 66600
-running = False
-def counter_label(label):
-	def count():
-		if running:
-			global counter
+# OpenCV program to detect face in real time
+# import libraries of python OpenCV
+# where its functionality resides
+import cv2
 
-			# To manage the initial delay.
-			if counter==66600:			
-				display="Starting..."
-			else:
-				tt = datetime.fromtimestamp(counter)
-				string = tt.strftime("%H:%M:%S")
-				display=string
+# load the required trained XML classifiers
+# https://github.com/Itseez/opencv/blob/master/
+# data/haarcascades/haarcascade_frontalface_default.xml
+# Trained XML classifiers describes some features of some
+# object we want to detect a cascade function is trained
+# from a lot of positive(faces) and negative(non-faces)
+# images.
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
-			label['text']=display # Or label.config(text=display)
+# https://github.com/Itseez/opencv/blob/master
+# /data/haarcascades/haarcascade_eye.xml
+# Trained XML file for detecting eyes
+eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
-			# label.after(arg1, arg2) delays by
-			# first argument given in milliseconds
-			# and then calls the function given as second argument.
-			# Generally like here we need to call the
-			# function in which it is present repeatedly.
-			# Delays by 1000ms=1 seconds and call count again.
-			label.after(1000, count)
-			counter += 1
+# capture frames from a camera
+cap = cv2.VideoCapture(0)
 
-	# Triggering the start of the counter.
-	count()	
+# loop runs if capturing has been initialized.
+while 1:
 
-# start function of the stopwatch
-def Start(label):
-	global running
-	running=True
-	counter_label(label)
-	start['state']='disabled'
-	stop['state']='normal'
-	reset['state']='normal'
+	# reads frames from a camera
+	ret, img = cap.read()
 
-# Stop function of the stopwatch
-def Stop():
-	global running
-	start['state']='normal'
-	stop['state']='disabled'
-	reset['state']='normal'
-	running = False
+	# convert to gray scale of each frames
+	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-# Reset function of the stopwatch
-def Reset(label):
-	global counter
-	counter=66600
+	# Detects faces of different sizes in the input image
+	faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-	# If rest is pressed after pressing stop.
-	if running==False:	
-		reset['state']='disabled'
-		label['text']='Welcome!'
+	for (x,y,w,h) in faces:
+		# To draw a rectangle in a face
+		cv2.rectangle(img,(x,y),(x+w,y+h),(255,255,0),2)
+		roi_gray = gray[y:y+h, x:x+w]
+		roi_color = img[y:y+h, x:x+w]
 
-	# If reset is pressed while the stopwatch is running.
-	else:			
-		label['text']='Starting...'
+		# Detects eyes of different sizes in the input image
+		eyes = eye_cascade.detectMultiScale(roi_gray)
 
-root = Tkinter.Tk()
-root.title("Stopwatch")
+		#To draw a rectangle in eyes
+		for (ex,ey,ew,eh) in eyes:
+			cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,127,255),2)
 
-# Fixing the window size.
-root.minsize(width=250, height=70)
-label = Tkinter.Label(root, text="Welcome!", fg="black", font="Verdana 30 bold")
-label.pack()
-f = Tkinter.Frame(root)
-start = Tkinter.Button(f, text='Start', width=6, command=lambda:Start(label))
-stop = Tkinter.Button(f, text='Stop',width=6,state='disabled', command=Stop)
-reset = Tkinter.Button(f, text='Reset',width=6, state='disabled', command=lambda:Reset(label))
-f.pack(anchor = 'center',pady=5)
-start.pack(side="left")
-stop.pack(side ="left")
-reset.pack(side="left")
-root.mainloop()
+	# Display an image in a window
+	cv2.imshow('img',img)
+
+	# Wait for Esc key to stop
+	k = cv2.waitKey(30) & 0xff
+	if k == 27:
+		break
+
+# Close the window
+cap.release()
+
+# De-allocate any associated memory usage
+cv2.destroyAllWindows()
