@@ -1,23 +1,48 @@
-# Python code to read image
 import cv2
 
-# To read image from disk, we use
-# cv2.imread function, in below method,
-img = cv2.imread("pic.jpeg", cv2.IMREAD_COLOR)
+# xml files are special files to detect difference between required and non required stuffs
+# haarcascade_frontalface_default.xml this xml file is for default faces
+face_cascade = cv2.CascadeClassifier(
+    'assets/haarcascade/haarcascade_frontalface_default.xml')
+# haarcascade_eye.xml this xml file is for detecting eys
+eye_cascade = cv2.CascadeClassifier('assets/haarcascade/haarcascade_eye.xml')
 
-# Creating GUI window to display an image on screen
-# first Parameter is windows title (should be in string format)
-# Second Parameter is image array
-cv2.imshow("image", img)
+cap = cv2.VideoCapture(0)
 
-# To hold the window on screen, we use cv2.waitKey method
-# Once it detected the close input, it will release the control
-# To the next line
-# First Parameter is for holding screen for specified milliseconds
-# It should be positive integer. If 0 pass an parameter, then it will
-# hold the screen until user close it.
-cv2.waitKey(0)
+# loop runs if capturing has been initialized.
+while 1:
 
-# It is for removing/deleting created GUI window from screen
-# and memory
+    ret, img = cap.read()
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Detects faces of different sizes in the input image
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
+    for (x, y, w, h) in faces:
+        # To draw a rectangle in a face
+        cv2.rectangle(img, (x, y), (x+w, y+h), (255, 255, 0), 2)
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = img[y:y+h, x:x+w]
+
+        # Detects eyes of different sizes in the input image
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+
+        # To draw a rectangle in eyes
+        for (ex, ey, ew, eh) in eyes:
+            cv2.rectangle(roi_color, (ex, ey),
+                          (ex+ew, ey+eh), (0, 127, 255), 2)
+
+    # Display an image in a window
+    cv2.imshow('img', img)
+
+    # Wait for Esc key to stop
+    k = cv2.waitKey(30) & 0xff
+    if k == 27:
+        break
+
+# Close the window
+cap.release()
+
+# De-allocate any associated memory usage
 cv2.destroyAllWindows()

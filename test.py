@@ -1,60 +1,95 @@
-# OpenCV program to detect face in real time
-# import libraries of python OpenCV
-# where its functionality resides
-import cv2
+# Importing the required dependencies
+import cv2 # for video rendering
+import dlib # for face and landmark detection
+import imutils
+# for calculating dist b/w the eye landmarks
+from scipy.spatial import distance as dist
+# to get the landmark ids of the left and right eyes
+# you can do this manually too
+from imutils import face_utils
 
-# load the required trained XML classifiers
-# https://github.com/Itseez/opencv/blob/master/
-# data/haarcascades/haarcascade_frontalface_default.xml
-# Trained XML classifiers describes some features of some
-# object we want to detect a cascade function is trained
-# from a lot of positive(faces) and negative(non-faces)
-# images.
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+# from imutils import
 
-# https://github.com/Itseez/opencv/blob/master
-# /data/haarcascades/haarcascade_eye.xml
-# Trained XML file for detecting eyes
-eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+cam = cv2.VideoCapture('assets/my_blink.mp4')
 
-# capture frames from a camera
-cap = cv2.VideoCapture(0)
+# defining a function to calculate the EAR
+def calculate_EAR(eye):
 
-# loop runs if capturing has been initialized.
+	# calculate the vertical distances
+	y1 = dist.euclidean(eye[1], eye[5])
+	y2 = dist.euclidean(eye[2], eye[4])
+
+	# calculate the horizontal distance
+	x1 = dist.euclidean(eye[0], eye[3])
+
+	# calculate the EAR
+	EAR = (y1+y2) / x1
+	return EAR
+
+# Variables
+blink_thresh = 0.45
+succ_frame = 2
+count_frame = 0
+
+# Eye landmarks
+(L_start, L_end) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+(R_start, R_end) = face_utils.FACIAL_LANDMARKS_IDXS['right_eye']
+
+# Initializing the Models for Landmark and
+# face Detection
+detector = dlib.get_frontal_face_detector()
+landmark_predict = dlib.shape_predictor(
+	'Model/shape_predictor_68_face_landmarks.dat')
 while 1:
 
-	# reads frames from a camera
-	ret, img = cap.read()
+	# If the video is finished then reset it
+	# to the start
+	if cam.get(cv2.CAP_PROP_POS_FRAMES) == cam.get(
+			cv2.CAP_PROP_FRAME_COUNT):
+		cam.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-	# convert to gray scale of each frames
-	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	else:
+		_, frame = cam.read()
+		frame = imutils.resize(frame, width=640)
 
-	# Detects faces of different sizes in the input image
-	faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+		# converting frame to gray scale to
+		# pass to detector
+		img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-	for (x,y,w,h) in faces:
-		# To draw a rectangle in a face
-		cv2.rectangle(img,(x,y),(x+w,y+h),(255,255,0),2)
-		roi_gray = gray[y:y+h, x:x+w]
-		roi_color = img[y:y+h, x:x+w]
+		# detecting the faces
+		faces = detector(img_gray)
+		for face in faces:
 
-		# Detects eyes of different sizes in the input image
-		eyes = eye_cascade.detectMultiScale(roi_gray)
+			# landmark detection
+			shape = landmark_predict(img_gray, face)
 
-		#To draw a rectangle in eyes
-		for (ex,ey,ew,eh) in eyes:
-			cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,127,255),2)
+			# converting the shape class directly
+			# to a list of (x,y) coordinates
+			shape = face_utils.shape_to_np(shape)
 
-	# Display an image in a window
-	cv2.imshow('img',img)
+			# parsing the landmarks list to extract
+			# lefteye and righteye landmarks--#
+			lefteye = shape[L_start: L_end]
+			righteye = shape[R_start:R_end]
 
-	# Wait for Esc key to stop
-	k = cv2.waitKey(30) & 0xff
-	if k == 27:
-		break
+			# Calculate the EAR
+			left_EAR = calculate_EAR(lefteye)
+			right_EAR = calculate_EAR(righteye)
 
-# Close the window
-cap.release()
+			# Avg of left and right eye EAR
+			avg = (left_EAR+right_EAR)/2
+			if avg < blink_thresh:
+				count_frame += 1 # incrementing the frame count
+			else:
+				if count_frame >= succ_frame:
+					cv2.putText(frame, 'Blink Detected', (30, 30),
+								cv2.FONT_HERSHEY_DUPLEX, 1, (0, 200, 0), 1)
+				else:
+					count_frame = 0
 
-# De-allocate any associated memory usage
+		cv2.imshow("Video", frame)
+		if cv2.waitKey(5) & 0xFF == ord('q'):
+			break
+
+cam.release()
 cv2.destroyAllWindows()
