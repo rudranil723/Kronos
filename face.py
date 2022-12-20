@@ -1,19 +1,30 @@
+# OpenCV program to detect face in real time
+# import libraries of python OpenCV
+# where its functionality resides
 import cv2
 
-# xml files are special files to detect difference between required and non required stuffs
-# haarcascade_frontalface_default.xml this xml file is for default faces
+# load the required trained XML classifiers
+# https://github.com/Itseez/opencv/blob/master/
+# data/haarcascades/haarcascade_frontalface_default.xml
+# Trained XML classifiers describes some features of some
+# object we want to detect a cascade function is trained
+# from a lot of positive(faces) and negative(non-faces)
+# images.
 face_cascade = cv2.CascadeClassifier(
-    'assets/haarcascade/haarcascade_frontalface_default.xml')
-# haarcascade_eye.xml this xml file is for detecting eys
-eye_cascade = cv2.CascadeClassifier('assets/haarcascade/haarcascade_eye.xml')
+    cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_eye.xml')
 
+# capture frames from a camera
 cap = cv2.VideoCapture(0)
 
 # loop runs if capturing has been initialized.
 while 1:
 
+    # reads frames from a camera
     ret, img = cap.read()
 
+    # convert to gray scale of each frames
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Detects faces of different sizes in the input image
