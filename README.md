@@ -7,4 +7,5 @@
 # <h3>I would love some help with the code</h3>
 
 ## <h4 align='center' color='blue'>created by : rudranil &#169;</h4>
-<img src="pic.jpeg">
+
+<img src="pic.jpeg", alt = "a photo of mine",width="300", heigth ="300">
