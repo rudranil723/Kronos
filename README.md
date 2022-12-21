@@ -8,4 +8,4 @@
 
 ## <h4 align='center' color='blue'>created by : rudranil &#169;</h4>
 
-<img src="pic.jpeg" alt = "a photo of mine" width="300" height ="300">
+
